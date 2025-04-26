@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities; 
+@tailwind utilities;
+
+html {
+  overflow-y: scroll;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+/* Zorg voor consistente padding */
+.page-container {
+  @apply max-w-7xl mx-auto;
+  width: 100%;
+} 

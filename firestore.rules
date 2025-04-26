@@ -7,5 +7,17 @@ service cloud.firestore {
       // Sta schrijven toe voor ingelogde gebruikers
       allow write: if true;
     }
+    
+    // Sta lezen en schrijven toe voor subscriptions
+    match /subscriptions/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Sta lezen en schrijven toe voor clients
+    match /clients/{document=**} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 } 
