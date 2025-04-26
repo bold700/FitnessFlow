@@ -1,0 +1,21 @@
+[debug] [2025-04-26T05:40:32.770Z] ----------------------------------------------------------------------
+[debug] [2025-04-26T05:40:32.773Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\kcati\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init hosting
+[debug] [2025-04-26T05:40:32.774Z] CLI Version:   14.2.1
+[debug] [2025-04-26T05:40:32.774Z] Platform:      win32
+[debug] [2025-04-26T05:40:32.774Z] Node Version:  v22.15.0
+[debug] [2025-04-26T05:40:32.774Z] Time:          Sat Apr 26 2025 07:40:32 GMT+0200 (Central European Summer Time)
+[debug] [2025-04-26T05:40:32.775Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-04-26T05:40:32.780Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-04-26T05:40:32.781Z] > authorizing via signed-in user (kcatimmer@gmail.com)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\kcati\OneDrive\Documenten\GitHub\FitnessFlow
+
