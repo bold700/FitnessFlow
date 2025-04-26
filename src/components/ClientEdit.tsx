@@ -17,6 +17,10 @@ interface Client {
 interface Subscription {
   id: string;
   name: string;
+  type: 'personal' | 'group';
+  price: number;
+  sessionsPerMonth?: number;
+  features?: string[];
 }
 
 export default function ClientEdit() {
@@ -45,11 +49,14 @@ export default function ClientEdit() {
 
   const fetchSubscriptions = async () => {
     try {
+      console.log('Fetching subscriptions...');
       const querySnapshot = await getDocs(collection(db, 'subscriptionTypes'));
+      console.log('Raw subscription docs:', querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       const subscriptionData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Subscription[];
+      console.log('Processed subscriptions:', subscriptionData);
       setSubscriptions(subscriptionData);
     } catch (error) {
       console.error('Error fetching subscriptions:', error);
@@ -59,10 +66,12 @@ export default function ClientEdit() {
   const fetchClient = async () => {
     try {
       if (!id) return;
+      console.log('Fetching client with ID:', id);
       const docRef = doc(db, 'clients', id);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const clientData = docSnap.data();
+        console.log('Retrieved client data:', clientData);
         setFormData({
           ...clientData,
           subscriptionIds: clientData.subscriptionIds || [],
@@ -78,6 +87,12 @@ export default function ClientEdit() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.subscriptionIds.length) {
+      alert('Selecteer minimaal één abonnement voor de klant.');
+      return;
+    }
+
     try {
       const clientData = {
         ...formData,
@@ -96,10 +111,40 @@ export default function ClientEdit() {
   };
 
   const handleSubscriptionToggle = (subscriptionId: string) => {
+    const subscription = subscriptions.find(s => s.id === subscriptionId);
+    if (!subscription) return;
+
     setFormData(prev => {
-      const newSubscriptionIds = prev.subscriptionIds.includes(subscriptionId)
-        ? prev.subscriptionIds.filter(id => id !== subscriptionId)
-        : [...prev.subscriptionIds, subscriptionId];
+      const currentSubscriptions = subscriptions.filter(s => prev.subscriptionIds.includes(s.id));
+      const isSelected = prev.subscriptionIds.includes(subscriptionId);
+
+      // Als we dit abonnement willen deselecteren
+      if (isSelected) {
+        return {
+          ...prev,
+          subscriptionIds: prev.subscriptionIds.filter(id => id !== subscriptionId)
+        };
+      }
+
+      // Als we een nieuw abonnement selecteren
+      let newSubscriptionIds = [...prev.subscriptionIds];
+
+      // Verwijder bestaande abonnementen van hetzelfde type
+      if (subscription.type === 'personal') {
+        newSubscriptionIds = newSubscriptionIds.filter(id => {
+          const sub = subscriptions.find(s => s.id === id);
+          return sub?.type !== 'personal';
+        });
+      } else if (subscription.type === 'group') {
+        newSubscriptionIds = newSubscriptionIds.filter(id => {
+          const sub = subscriptions.find(s => s.id === id);
+          return sub?.type !== 'group';
+        });
+      }
+
+      // Voeg het nieuwe abonnement toe
+      newSubscriptionIds.push(subscriptionId);
+
       return { ...prev, subscriptionIds: newSubscriptionIds };
     });
   };
@@ -126,6 +171,9 @@ export default function ClientEdit() {
           <h1 className="text-2xl font-bold text-gray-900">
             {id ? 'Klant Bewerken' : 'Nieuwe Klant'}
           </h1>
+          <p className="mt-2 text-sm text-gray-600">
+            * Selecteer minimaal één abonnement. Je kunt maximaal één Personal Training en één Small Group Training abonnement kiezen.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -188,35 +236,85 @@ export default function ClientEdit() {
 
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Abonnementen
+                Abonnementen * ({subscriptions.length} beschikbaar)
               </label>
-              <div className="bg-white rounded-md border border-gray-300 divide-y divide-gray-200">
-                {subscriptions.map((subscription) => (
-                  <div key={subscription.id} className="p-4 flex items-center space-x-4">
-                    <input
-                      type="checkbox"
-                      id={`subscription-${subscription.id}`}
-                      checked={formData.subscriptionIds.includes(subscription.id)}
-                      onChange={() => handleSubscriptionToggle(subscription.id)}
-                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                    />
-                    <label
-                      htmlFor={`subscription-${subscription.id}`}
-                      className="flex-grow flex items-center justify-between cursor-pointer"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{subscription.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {(subscription as any).type === 'personal' ? 'Personal Training' : 'Groepstraining'} - {(subscription as any).sessionsPerMonth}x per maand
-                        </p>
-                      </div>
-                      <p className="text-sm font-medium text-gray-900">
-                        €{(subscription as any).price}/maand
-                      </p>
-                    </label>
+              <div className="bg-white rounded-lg border border-gray-300 divide-y divide-gray-200 max-h-[400px] overflow-y-auto">
+                {subscriptions.length === 0 ? (
+                  <div className="p-4 text-gray-500 text-center">
+                    Geen abonnementen gevonden. Maak eerst een abonnement aan.
                   </div>
-                ))}
+                ) : (
+                  subscriptions.map((subscription) => {
+                    const isSelected = formData.subscriptionIds.includes(subscription.id);
+                    const isPersonal = subscription.type === 'personal';
+                    return (
+                      <div 
+                        key={subscription.id} 
+                        className={`p-4 hover:bg-gray-50 transition-colors relative ${
+                          isSelected ? `${isPersonal ? 'bg-blue-50' : 'bg-green-50'}` : ''
+                        }`}
+                      >
+                        <label className="flex items-center gap-4 cursor-pointer w-full group">
+                          <div className="relative flex-shrink-0">
+                            <div className={`w-6 h-6 rounded-full border-2 transition-colors ${
+                              isSelected 
+                                ? (isPersonal ? 'border-blue-500 bg-blue-500' : 'border-green-500 bg-green-500')
+                                : 'border-gray-300 group-hover:border-gray-400'
+                            }`}>
+                              {isSelected && (
+                                <svg 
+                                  className="w-4 h-4 mx-auto mt-0.5 text-white" 
+                                  fill="none" 
+                                  viewBox="0 0 24 24" 
+                                  stroke="currentColor"
+                                >
+                                  <path 
+                                    strokeLinecap="round" 
+                                    strokeLinejoin="round" 
+                                    strokeWidth={3} 
+                                    d="M5 13l4 4L19 7" 
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleSubscriptionToggle(subscription.id)}
+                              className="sr-only"
+                            />
+                          </div>
+                          <div className="flex-grow">
+                            <div className="flex items-center flex-wrap gap-2">
+                              <span className="text-base font-medium text-gray-900">{subscription.name}</span>
+                              <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${
+                                isPersonal
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {isPersonal ? 'Personal Training' : 'Small Group Training'}
+                              </span>
+                            </div>
+                            {subscription.sessionsPerMonth && (
+                              <p className="text-sm text-gray-500 mt-1">
+                                {subscription.sessionsPerMonth}x per maand
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-base font-medium text-gray-900">
+                            €{subscription.price}/maand
+                          </div>
+                        </label>
+                      </div>
+                    );
+                  })
+                )}
               </div>
+              {formData.subscriptionIds.length === 0 && (
+                <p className="mt-2 text-sm text-red-600">
+                  Selecteer minimaal één abonnement
+                </p>
+              )}
             </div>
 
             <div>
@@ -249,17 +347,17 @@ export default function ClientEdit() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end space-x-4">
             <button
               type="button"
               onClick={() => navigate('/clients')}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
               Annuleren
             </button>
             <button
               type="submit"
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             >
               {id ? 'Opslaan' : 'Toevoegen'}
             </button>
