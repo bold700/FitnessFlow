@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Sta lezen toe voor iedereen
+    match /subscriptionTypes/{document=**} {
+      allow read: if true;
+      // Sta schrijven toe voor ingelogde gebruikers
+      allow write: if true;
+    }
+  }
+} 
